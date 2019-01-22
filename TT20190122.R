@@ -32,10 +32,14 @@ preTrial %>%
   theme_bw()
 
 # Deeper into Kansas we go...
-preTrial %>% 
-  filter(state == "KS") %>%
-  ggplot(aes(year,total_jail_pretrial, color=urbanicity)) + 
-  geom_point(aes(shape=division)) +
-  facet_wrap("county_name", scales = "free") +
+kansPre<- preTrial %>%
+  filter(state == "KS")
+
+unique(kansPre$county_name)
+
+kansPre %>% 
+  ggplot(aes(year,total_jail_pretrial)) + 
+  geom_point() +
+  facet_wrap("urbanicity", scales = "free") +
   theme_bw()
-#not really helpful
+#There must be one county that is being super odd
