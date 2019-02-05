@@ -80,8 +80,8 @@ state_hpiPerYear<- state_hpiPercent %>%
 
 state_hpiPerYear %>% 
   ggplot(aes(x = year, y = percent_change, color = state)) +
-  geom_line() +
-  geom_pointrange(aes(ymin = Lowest,ymax = Highest)) +
+  geom_line(size = 0.5) +
+  geom_linerange(aes(ymin = Lowest,ymax = Highest)) +
   theme_bw() +
   labs(title = "State HPI")
 
