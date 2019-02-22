@@ -79,9 +79,12 @@ state_hpiPerYear<- state_hpiPercent %>%
   mutate(percent_change = Jan - Dec)
 
 state_hpiPerYear %>% 
+  #filter(between(year, 1980,1990)) %>% 
   ggplot(aes(x = year, y = percent_change, color = state)) +
-  geom_line(size = 0.5) +
-  geom_linerange(aes(ymin = Lowest,ymax = Highest)) +
+  geom_line(size = 0.5)  +
+  facet_wrap( ~ state) +
   theme_bw() +
+  theme(legend.position = "none") +
   labs(title = "State HPI")
+
 
