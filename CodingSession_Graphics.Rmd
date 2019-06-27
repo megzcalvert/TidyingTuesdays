@@ -1,0 +1,290 @@
+---
+title: "Grammar of Graphics"
+author: "Megan Calvert"
+date: "6/24/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+# Graphics basics with ggplot2
+
+The ggplot2 package is part of the Tidyverse series of packages. If you load the tidyverse library, ggplot2 is automatically loaded.
+
+Based on the ggplot2 package a plot has 3 main components:  
+
+1. Data  
++ Dataframe containing the information to work from  
+2. Aesthetics  
++ The x and y variables  
++ Colour, Size, Shape, Fill, Linetype  
+3. Geometry  
++ Type/Shape of graph  
+
+There are also very useful extensions to ggplot2 that can be used to adjust the graphics <http://www.ggplot2-exts.org/gallery/>
+
+```{r packages required, message=FALSE}
+library(tidyverse)
+library(tidylog) # a useful wrapper for dplyr functions that gives summary #'s
+library(ggrepel)
+library(gganimate)
+library(ggsci)
+library(ggthemes)
+```
+
+### Data for analysis
+
+I am using data from the TidyTuesdays social data project <https://github.com/rfordatascience/tidytuesday>.   
+They're very good for skills practice with random data and have a large community on Twitter where you can share your ideas.
+
+```{r DataLoad, message=TRUE}
+ufo_sightings<- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-25/ufo_sightings.csv")
+
+glimpse(ufo_sightings)
+ufo_sightings<- ufo_sightings %>% 
+  tidylog::select(-description)  %>% 
+  separate(date_time, c("date_observed","time_observed"), sep = " ") %>% 
+  tidylog::mutate(date_documented = as.Date(date_documented, 
+                                            format = "%m/%d/%Y"),
+                  date_observed = as.Date(date_observed, 
+                                          format = "%m/%d/%Y")) %>% 
+  glimpse()
+
+small_trains <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-02-26/small_trains.csv") 
+
+small_trains<- small_trains %>% 
+  mutate(service = replace_na(service, "Unknown"),
+         service = as.factor(service)) %>% 
+  glimpse
+
+```
+## One Variable
+
++ Histograms `geom_hist`  
++ Density `geom_density` 
++ Bar `geom_bar`  
++ QQ `stat_qq`
+
+## Two Variables
+
++ Scatterplot `geom_point`/`geom_jitter` 
++ Smoothed lines, eg linear regression `geom_smooth`  
++ Lines `geom_line`
++ Boxplot `geom_boxplot`  
++ Violin plot `geom_violin`  
++ Dot plot `geom_dotplot`
+
+### Aesthetics setup  
+
+Decide on what you want the axis to be.  
+
+*  What question you are trying to answer?  
+*  What information do you have?
+
+Initially define the axis and assign it to a variable.  
+Draw the plot by calling the variable.  
+
+```{r OneVarAes }
+plot_trains<- ggplot(data = small_trains,
+                     mapping = aes(x = total_num_trips)) 
+plot_trains
+
+plot_ufo<- ggplot(data = ufo_sightings,
+                  mapping = aes(x = country))
+plot_ufo
+```
+
+### Geometry setup
+
+Define what "shape" you want the graph to have.  
+
+* What is easiest to see?  
+* What gets your point across best?  
+
+Can add to the plot we already have defined in plot_hist
+I added in the labs() call because graphs need labels or it's confusing.
+
+```{r OneVarGeom, message=TRUE}
+plot_hist<- plot_trains +
+  geom_histogram() +
+  labs(title = "Distribution of Total Number of Train Trips")
+plot_hist
+
+plot_density<- plot_trains +
+  geom_density() +
+  labs(title = "Distribution of Total Number of Train Trips")
+plot_density
+
+plot_bar<- plot_ufo +
+  geom_bar() +
+  labs(title = "Number of UFO Sightings")
+plot_bar
+```
+
+### Adjusting the x-axis
+
+Adjusting the x-axis is done with the scale_x_xx command where xx can be:  
++ discrete 
++ continuous 
++ date - in two-variables  
++ transformation - in two-variables
+
+```{r Scale_x}
+plot_barAxis<- plot_bar +
+  scale_x_discrete(name = "Country",
+                   limits = c("au","ca","de","gb","us"),
+                   labels = c("au" = "Aus", "ca" = "Can", "de" = "Den",
+                              "gb" = "GB", "us" = "USA"))
+plot_barAxis
+
+plot_DensityBreaks<- plot_density +
+  scale_x_continuous(breaks = seq(0,900,150))
+plot_DensityBreaks
+
+```
+
+
+### Improving the Aesthetics
+
+More information can be obtained from the visual if the different factors are different colours.  
+
+Considering service to be the factor that we are interested in: 
+
+```{r OneVarAest, message=TRUE}
+plot_trains<- ggplot(data = small_trains,
+                     mapping = aes(x = total_num_trips, 
+                                   colour = service)) + 
+  labs(title = "Distribution of Total Number of Train Trips",
+       subtitle = "Coloured by service",
+       x = "Total number of trips",
+       y = "Density")
+
+plot_hist<- plot_trains + 
+  geom_histogram(aes(fill = service)) + # fill must only apply to the histogram
+  guides(fill=FALSE)
+plot_hist 
+
+plot_density<- plot_trains +
+  geom_density() 
+plot_density
+```
+
+The colours can be changed using scale_colours_manual().
+Picking the right colour palettes can be difficult. The brewer palettes have good online resources:   <http://colorbrewer2.org/#type=sequential&scheme=BuGn&n=9>
+Remember to think about colour blindness! There are palettes that account for that and colour oracle is a nice tool to check what your figures look like.
+<https://colororacle.org/>
+The ggsci package contains colour schemes from well known publishers.
+
+```{r Scale_Colour, message=FALSE}
+plot_density<- plot_density +
+  scale_colour_manual(values = c('#1b9e77','#7570b3','#e7298a','#66a61e'))
+plot_density
+
+plot_densityC<- plot_density + 
+  scale_color_aaas()
+plot_densityC
+
+plot_densityST<- plot_density + 
+  scale_color_startrek()
+plot_densityST
+
+```
+
+## Changing the theme
+
+ggplot2 uses theme_grey() as the basic theme. It is the theme we have seen in all of the plots so far.  
+It is not the most appealing theme BUT it is a complete theme. This means that every thing that can be changed by theme is specified in theme_grey. Other themes are modified versions of theme_grey <https://ggplot2.tidyverse.org/reference/ggtheme.html>.  
+There are also different extension packages that have ready-made themes according to scientific journal, TV show, news organization, etc.  
+
+A personal theme can be defined/modified for each plot. Some times it may be best to load a theme that is most commonly used when you open R, others it is best to define it as you go. Whatever practice works best for you. 
+All components of a theme can be found : <https://ggplot2.tidyverse.org/reference/theme.html>  
+
+Make your graphics well the first time and then you don't have to modify to much for presentations and publications. 
+
+```{r ThemeChanges}
+plot_bw<- plot_density +
+  theme_bw()
+plot_bw
+
+plot_minimal<- plot_density +
+  theme_minimal()
+plot_minimal
+
+plot_custom<- plot_density +
+  theme_grey() +
+  labs(tag = "A") +
+  theme(title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12, colour = "black"),
+        axis.line.x.bottom = element_line(colour = "black",size = 0.5),
+        axis.line.x.top = element_blank(),
+        axis.line.y.left = element_line(colour = "black",size = 0.5),
+        axis.line.y.right = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 14),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank())
+plot_custom
+```
+
+Defining a completely custom theme is not hard. I have one for each project that I do, so that I don't have to define text size and such each time. Can also use a custom theme from ggsci or ggthemes.
+
+```{r CustomThemes, message=TRUE}
+theme_get() # All elements of the current default theme
+
+custom_theme<- theme_minimal() %+replace% 
+  theme(title = element_text(size = 16),
+        axis.line = element_line(colour = "black",size = 1),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12, colour = "black"),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 14),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        panel.border = element_rect(colour = "black",fill = NA),
+        panel.grid.major = element_line(colour = "#bdbdbd"),
+        panel.grid.minor = element_blank(),
+        plot.tag.position = "bottomright",
+        strip.background = element_rect(fill = NA, colour = "black"),
+        strip.placement = "outside",
+        strip.text = element_text(size = 14),
+        complete = F)
+
+plot_density + custom_theme
+
+theme_set(custom_theme) # Changes this to the default theme
+
+plot_density 
+
+plot_density + theme_clean()
+plot_density + theme_gdocs()
+
+```
+
+
+## Faceting
+
+Can draw multiple plots, divided by a grouping element in the data.  
+```{r Faceting, message=FALSE}
+plot_facet<- plot_custom +
+  facet_wrap(~year) 
+plot_facet
+```
+
+
+```{r FacetingMultiple, fig.height=20, fig.width=8, message=FALSE}
+plot_facet<- plot_custom +
+  facet_wrap(month~year, scales = "free", ncol = 4) +
+  labs(tag = "") +
+  coord_cartesian(xlim = c(0,900),ylim = c(0,0.035)) 
+
+plot_facet
+```
+
+## Two Variables
+
+
