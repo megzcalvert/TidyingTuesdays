@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(fig.width = 9)
+knitr::opts_chunk$set(fig.height = 8)
 ```
 
 # Graphics basics with ggplot2
@@ -24,13 +26,13 @@ Based on the ggplot2 package a plot has 3 main components:
 3. Geometry  
 + Type/Shape of graph  
 
-There are also very useful extensions to ggplot2 that can be used to adjust the graphics <http://www.ggplot2-exts.org/gallery/>
+There are also very useful extensions to ggplot2 that can be used to adjust the graphics/get new themes/animation/colour palettes/big data graphics.   <http://www.ggplot2-exts.org/gallery/>  
+Always cite your package developers. 
 
 ```{r packages required, message=FALSE}
 library(tidyverse)
 library(tidylog) # a useful wrapper for dplyr functions that gives summary #'s
 library(ggrepel)
-library(gganimate)
 library(ggsci)
 library(ggthemes)
 ```
@@ -38,46 +40,42 @@ library(ggthemes)
 ### Data for analysis
 
 I am using data from the TidyTuesdays social data project <https://github.com/rfordatascience/tidytuesday>.   
-They're very good for skills practice with random data and have a large community on Twitter where you can share your ideas.
+They're very good for skills practice with random data and have a large community on Twitter where you can share your ideas or get new ones.
 
 ```{r DataLoad, message=TRUE}
+#Reading data from a github account. Does require internet 
 ufo_sightings<- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-25/ufo_sightings.csv")
 
-glimpse(ufo_sightings)
 ufo_sightings<- ufo_sightings %>% 
-  tidylog::select(-description)  %>% 
-  separate(date_time, c("date_observed","time_observed"), sep = " ") %>% 
-  tidylog::mutate(date_documented = as.Date(date_documented, 
+  tidylog::select(-description)  %>% #Drop description of event
+  separate(date_time,                #Separate columns for date and time
+           c("date_observed","time_observed"), 
+           sep = " ") %>% 
+  tidylog::mutate(date_documented = as.Date(date_documented, #Change format
                                             format = "%m/%d/%Y"),
                   date_observed = as.Date(date_observed, 
                                           format = "%m/%d/%Y")) %>% 
-  glimpse()
+  glimpse() #View date
 
+#Reading data from a github account. Does require internet
 small_trains <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-02-26/small_trains.csv") 
 
 small_trains<- small_trains %>% 
-  mutate(service = replace_na(service, "Unknown"),
-         service = as.factor(service)) %>% 
+  mutate(service = replace_na(service, "Unknown"), #Give NA a value - eg later
+         service = as.factor(service)) %>%         #Change service to a factor
   glimpse
-
 ```
+
 ## One Variable
+
+What is the distribution of the variable?
 
 + Histograms `geom_hist`  
 + Density `geom_density` 
 + Bar `geom_bar`  
 + QQ `stat_qq`
 
-## Two Variables
-
-+ Scatterplot `geom_point`/`geom_jitter` 
-+ Smoothed lines, eg linear regression `geom_smooth`  
-+ Lines `geom_line`
-+ Boxplot `geom_boxplot`  
-+ Violin plot `geom_violin`  
-+ Dot plot `geom_dotplot`
-
-### Aesthetics setup  
+### Aesthetics setup 
 
 Decide on what you want the axis to be.  
 
@@ -88,12 +86,12 @@ Initially define the axis and assign it to a variable.
 Draw the plot by calling the variable.  
 
 ```{r OneVarAes }
-plot_trains<- ggplot(data = small_trains,
-                     mapping = aes(x = total_num_trips)) 
+plot_trains<- ggplot(data = small_trains, #The dataframe
+                     mapping = aes(x = total_num_trips)) #The x-axis
 plot_trains
 
-plot_ufo<- ggplot(data = ufo_sightings,
-                  mapping = aes(x = country))
+plot_ufo<- ggplot(data = ufo_sightings, #The dataframe
+                  mapping = aes(x = country)) #The x-axis
 plot_ufo
 ```
 
@@ -104,48 +102,55 @@ Define what "shape" you want the graph to have.
 * What is easiest to see?  
 * What gets your point across best?  
 
-Can add to the plot we already have defined in plot_hist
-I added in the labs() call because graphs need labels or it's confusing.
+Can add to the plot we already have defined in `plot_hist`.  
+I added in the labs() call because graphs need labels.
 
 ```{r OneVarGeom, message=TRUE}
-plot_hist<- plot_trains +
-  geom_histogram() +
+plot_hist<- plot_trains + #The plot characters we have defined
+  geom_histogram() +      #The shape we want the data to take
   labs(title = "Distribution of Total Number of Train Trips")
 plot_hist
 
-plot_density<- plot_trains +
-  geom_density() +
+plot_density<- plot_trains + #The plot characters we have defined
+  geom_density() +           #The shape we want the data to take
   labs(title = "Distribution of Total Number of Train Trips")
 plot_density
 
-plot_bar<- plot_ufo +
-  geom_bar() +
+plot_bar<- plot_ufo + #The plot characters we have defined
+  geom_bar() +        #The shape we want the data to take
   labs(title = "Number of UFO Sightings")
 plot_bar
 ```
 
-### Adjusting the x-axis
+### Adjusting the axis
 
-Adjusting the x-axis is done with the scale_x_xx command where xx can be:  
+Adjusting the x-axis is done with the scale_x/y_xx command where xx can be:  
+
 + discrete 
 + continuous 
 + date - in two-variables  
-+ transformation - in two-variables
+
+Can also be used to transform axis with the scale_x/y_xx command where xx can be:
+
++ reverse  
++ log10  
++ sqrt
 
 ```{r Scale_x}
-plot_barAxis<- plot_bar +
-  scale_x_discrete(name = "Country",
-                   limits = c("au","ca","de","gb","us"),
+plot_barAxis<- plot_bar + #The plot characters we have defined
+  scale_x_discrete(name = "Country", #Can be used to label axis
+                   limits = c("au","de","ca","us","gb"), #Breaks in order
                    labels = c("au" = "Aus", "ca" = "Can", "de" = "Den",
-                              "gb" = "GB", "us" = "USA"))
+                              "gb" = "GB", "us" = "USA")) + #Names for breaks
+  scale_y_continuous(name = "Count", 
+                     breaks = seq(0,60000,10000))
 plot_barAxis
 
 plot_DensityBreaks<- plot_density +
-  scale_x_continuous(breaks = seq(0,900,150))
+  scale_x_continuous(name = "Total Number of Trips per Month",
+                     breaks = seq(0,900,150)) #A break every 150 between 0 and 900
 plot_DensityBreaks
-
 ```
-
 
 ### Improving the Aesthetics
 
@@ -154,17 +159,17 @@ More information can be obtained from the visual if the different factors are di
 Considering service to be the factor that we are interested in: 
 
 ```{r OneVarAest, message=TRUE}
-plot_trains<- ggplot(data = small_trains,
-                     mapping = aes(x = total_num_trips, 
-                                   colour = service)) + 
+plot_trains<- ggplot(data = small_trains, #Dataframe
+                     mapping = aes(x = total_num_trips, #x_axis
+                                   colour = service)) + #group to colour results by
   labs(title = "Distribution of Total Number of Train Trips",
        subtitle = "Coloured by service",
-       x = "Total number of trips",
+       x = "Total Number of Trips per Month",
        y = "Density")
 
 plot_hist<- plot_trains + 
   geom_histogram(aes(fill = service)) + # fill must only apply to the histogram
-  guides(fill=FALSE)
+  guides(fill=FALSE) #Removes legend for fill
 plot_hist 
 
 plot_density<- plot_trains +
@@ -172,11 +177,24 @@ plot_density<- plot_trains +
 plot_density
 ```
 
-The colours can be changed using scale_colours_manual().
-Picking the right colour palettes can be difficult. The brewer palettes have good online resources:   <http://colorbrewer2.org/#type=sequential&scheme=BuGn&n=9>
+The colours can be changed using scale_colours_xx. Where xx can be:  
+
++ manual  
++ discrete  
++ brewer  
++ distiller 
++ continuous  
++ gradient  
++ hue  
++ viridis  
++ identity  
+
+Picking the right colour palettes can be difficult. The brewer palettes have good online resources: <http://colorbrewer2.org/#type=sequential&scheme=BuGn&n=9>  
 Remember to think about colour blindness! There are palettes that account for that and colour oracle is a nice tool to check what your figures look like.
 <https://colororacle.org/>
-The ggsci package contains colour schemes from well known publishers.
+
+The ggsci package contains colour schemes from well known publishers. 
+Other options are also available in ggthemes, viridis, colourspace, cowplot, etc all contain additional colour scales. 
 
 ```{r Scale_Colour, message=FALSE}
 plot_density<- plot_density +
@@ -190,7 +208,6 @@ plot_densityC
 plot_densityST<- plot_density + 
   scale_color_startrek()
 plot_densityST
-
 ```
 
 ## Changing the theme
@@ -239,9 +256,13 @@ theme_get() # All elements of the current default theme
 
 custom_theme<- theme_minimal() %+replace% 
   theme(title = element_text(size = 16),
-        axis.line = element_line(colour = "black",size = 1),
+        axis.line = element_line(colour = "black",size = 0.75),
         axis.title = element_text(size = 14),
+        axis.title.x = element_text(vjust = -1),
+        axis.title.y = element_text(vjust = 1.5, angle = 90),
         axis.text = element_text(size = 12, colour = "black"),
+        axis.ticks = element_line(colour = "black"),
+        axis.ticks.length = unit(6, "points"),
         legend.text = element_text(size = 12),
         legend.title = element_text(size = 14),
         panel.background = element_rect(fill = "white", colour = "black"),
@@ -262,29 +283,71 @@ plot_density
 
 plot_density + theme_clean()
 plot_density + theme_gdocs()
-
 ```
-
 
 ## Faceting
 
 Can draw multiple plots, divided by a grouping element in the data.  
+
 ```{r Faceting, message=FALSE}
-plot_facet<- plot_custom +
-  facet_wrap(~year) 
+plot_facet<- plot_density +
+  facet_wrap(~year, scales = "fixed") #Divide data by year
 plot_facet
 ```
 
-
-```{r FacetingMultiple, fig.height=20, fig.width=8, message=FALSE}
-plot_facet<- plot_custom +
-  facet_wrap(month~year, scales = "free", ncol = 4) +
-  labs(tag = "") +
-  coord_cartesian(xlim = c(0,900),ylim = c(0,0.035)) 
+```{r FacetingMultiple, fig.height=20, message=FALSE}
+plot_facet<- plot_density +
+  facet_wrap(month~year, ncol = 4, scales = "free") + #Divide by month and year, 4 columns
+  labs(tag = "") + #Remove tag label
+  coord_cartesian(xlim = c(0,900),ylim = c(0,0.035)) #The x and y limits without removing data
 
 plot_facet
 ```
 
 ## Two Variables
 
+What is the relationship of the variables?
+
++ Scatterplot `geom_point`/`geom_jitter` 
++ Smoothed lines, eg linear regression `geom_smooth`  
++ Lines `geom_line`
++ Boxplot `geom_boxplot`  
++ Violin plot `geom_violin`  
++ Dot plot `geom_dotplot`
+
+### Aesthetics setup 
+
+An additional value is required to give a value to the y-axis. 
+
+```{r TwoVarAes}
+ufo_sightings<- ufo_sightings %>% 
+  filter(encounter_length < 50000)
+
+plot_ufo<- ggplot(data = ufo_sightings,
+                  mapping = aes(x = date_observed, 
+                                y = (encounter_length)/60,
+                                colour = country)) 
+plot_ufo
+
+plot_trains<- ggplot(data = small_trains, 
+                     mapping = aes(x = service,
+                                   y = journey_time_avg,
+                                   colour = service))
+plot_trains
+```
+
+### Geometry for 2 Variable
+
+Multiple different options for the same axis. Use whichever shows your data best  
+
+```{r TwoVarGeom}
+plot_trains + geom_boxplot()
+plot_trains + geom_violin()
+plot_trains + geom_jitter()
+
+
+plot_trains + 
+  geom_violin(size = 2) +
+  geom_jitter(alpha = 0.2)
+```
 
