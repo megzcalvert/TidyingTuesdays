@@ -35,6 +35,7 @@ library(tidylog) # a useful wrapper for dplyr functions that gives summary #'s
 library(ggrepel)
 library(ggsci)
 library(ggthemes)
+library(broom)
 ```
 
 ### Data for analysis
@@ -62,7 +63,9 @@ small_trains <- readr::read_csv("https://raw.githubusercontent.com/rfordatascien
 
 small_trains<- small_trains %>% 
   mutate(service = replace_na(service, "Unknown"), #Give NA a value - eg later
-         service = as.factor(service)) %>%         #Change service to a factor
+         service = as.factor(service), #Change service to a factor
+         avg_delay_all_departing = as.numeric(avg_delay_all_departing),
+         avg_delay_all_arriving = as.numeric(avg_delay_all_arriving)) %>%         
   glimpse
 ```
 
@@ -267,7 +270,7 @@ custom_theme<- theme_minimal() %+replace%
         legend.title = element_text(size = 14),
         panel.background = element_rect(fill = "white", colour = "black"),
         panel.border = element_rect(colour = "black",fill = NA),
-        panel.grid.major = element_line(colour = "#bdbdbd"),
+        panel.grid.major = element_line(colour = "#bdbdbd", linetype = 3),
         panel.grid.minor = element_blank(),
         plot.tag.position = "bottomright",
         strip.background = element_rect(fill = NA, colour = "black"),
@@ -320,19 +323,14 @@ What is the relationship of the variables?
 An additional value is required to give a value to the y-axis. 
 
 ```{r TwoVarAes}
-ufo_sightings<- ufo_sightings %>% 
-  filter(encounter_length < 50000)
-
-plot_ufo<- ggplot(data = ufo_sightings,
-                  mapping = aes(x = date_observed, 
-                                y = (encounter_length)/60,
-                                colour = country)) 
-plot_ufo
-
 plot_trains<- ggplot(data = small_trains, 
-                     mapping = aes(x = service,
+                     mapping = aes(x = total_num_trips,
                                    y = journey_time_avg,
-                                   colour = service))
+                                   colour = service)) +
+  custom_theme +
+  labs(title = "Total number of trips per month vs average journey time",
+       y = "Average Journey Time",
+       x = "Total Number of Trips per Month")
 plot_trains
 ```
 
@@ -341,13 +339,16 @@ plot_trains
 Multiple different options for the same axis. Use whichever shows your data best  
 
 ```{r TwoVarGeom}
-plot_trains + geom_boxplot()
-plot_trains + geom_violin()
-plot_trains + geom_jitter()
+plot_trains +
+  geom_point()
 
+plot_trains +
+  geom_point(size = 1, alpha = 0.25) +
+  geom_smooth() 
 
-plot_trains + 
-  geom_violin(size = 2) +
-  geom_jitter(alpha = 0.2)
+plot_trains +
+  geom_point(size = 1, alpha = 0.25) +
+  geom_smooth(method = "lm", fullrange = T) 
+
 ```
 
