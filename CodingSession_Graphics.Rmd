@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
-knitr::opts_chunk$set(fig.width = 9)
+knitr::opts_chunk$set(fig.width = 10)
 knitr::opts_chunk$set(fig.height = 8)
 ```
 
@@ -350,5 +350,65 @@ plot_trains +
   geom_point(size = 1, alpha = 0.25) +
   geom_smooth(method = "lm", fullrange = T) 
 
+plot_trains +
+  geom_violin(aes(x = service))  # Changing an axis with out assigning all variables again
+
+plot_trains +
+  geom_boxplot(aes(x = service))
+
 ```
+
+Some data fiddling for the next figure
+It will give a lot of error messages because the data isn't balanced.
+
+```{r DataManipulation, message=FALSE}
+small_trainsAdj<- small_trains %>% 
+  filter(year == "2017") %>% # Keep only 2017
+  mutate(day = 01) %>%       # Add a column for day
+  unite("Date", year,month,day, sep = "-") %>% # Add date column
+  mutate(Date = as.Date(Date))  %>% # Convert to Date
+  group_by(departure_station,Date,service) %>% # Defining factors
+  nest() %>%                 # Separate data into lists by group
+  mutate(correlation = map(data, ~ cor.test(.x$avg_delay_all_departing, # correlation
+                                            .x$avg_delay_all_arriving)),
+         correlation = map(correlation, tidy)) %>% # clean version of correlation
+  unnest(correlation) %>% # Back into all one dataframe
+  select(-data,-method,-alternative) %>%  # drop unneccessary columns
+  drop_na(estimate) # drop any row with na in estimate column
+```
+
+### Dates as axis and error bars
+
+No one trust results with out confidence intervals/error bars. 
+
+```{r DateErrorB, fig.width=11}
+small_trainsAdj %>% 
+  ggplot(aes(x = Date,
+             y = estimate, 
+             colour = p.value,
+             shape = service)) +
+  geom_point(size = 1) +
+  geom_errorbar(aes(ymin = conf.low,
+                    ymax = conf.high),
+                alpha = 0.5,
+                width = 0.25) +
+  scale_colour_gradient2(name = "P-value",
+                         low = "#c51b7d", 
+                         mid = "#b8e186",
+                         high = "#f7f7f7",
+                         midpoint = 0.4) +
+  scale_x_date(date_breaks = "1 month",
+               date_labels = "%m") +
+  facet_wrap(~departure_station, scales = "free") +
+  theme(strip.text = element_text(size = 10),
+        axis.text.x = element_text(size = 9)) +
+  coord_cartesian(ylim = c(-1,1)) +
+  labs(title = "Correlation between average arrival delay and departure delay",
+       subtitle = "By service, 2017",
+       ylab = "Correlation co-efficient",
+       shape = "Service")
+
+```
+
+
 
