@@ -298,7 +298,7 @@ plot_facet<- plot_density +
 plot_facet
 ```
 
-```{r FacetingMultiple, fig.height=20, message=FALSE}
+```{r FacetingMultiple, fig.height=20, fig.width=10, message=FALSE}
 plot_facet<- plot_density +
   facet_wrap(month~year, ncol = 4, scales = "free") + #Divide by month and year, 4 columns
   labs(tag = "") + #Remove tag label
@@ -410,5 +410,9 @@ small_trainsAdj %>%
 
 ```
 
+## General thoughts  
 
++ Good figures make your story much easier to tell  
++ *EVERYONE* is going a bit blind, make things large  
++ The standard figure is not always best
 
