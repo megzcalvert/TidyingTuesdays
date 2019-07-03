@@ -260,10 +260,10 @@ theme_get() # All elements of the current default theme
 custom_theme<- theme_minimal() %+replace% 
   theme(title = element_text(size = 16),
         axis.line = element_line(colour = "black",size = 0.75),
-        axis.title = element_text(size = 14),
+        axis.title = element_text(size = 16),
         axis.title.x = element_text(vjust = -1),
         axis.title.y = element_text(vjust = 1.5, angle = 90),
-        axis.text = element_text(size = 12, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
         axis.ticks = element_line(colour = "black"),
         axis.ticks.length = unit(6, "points"),
         legend.text = element_text(size = 12),
@@ -401,7 +401,7 @@ small_trainsAdj %>%
                date_labels = "%m") +
   facet_wrap(~departure_station, scales = "free") +
   theme(strip.text = element_text(size = 10),
-        axis.text.x = element_text(size = 9)) +
+        axis.text.x = element_text(size = 9.5)) +
   coord_cartesian(ylim = c(-1,1)) +
   labs(title = "Correlation between average arrival delay and departure delay",
        subtitle = "By service, 2017",
